@@ -245,6 +245,7 @@
     <button class="linkbtn" id="bDiag">Diagnostica API</button>
       <button class="linkbtn" id="bLink" style="margin-left:14px">Collegamento…</button>
       <button class="linkbtn" id="bUpd" style="margin-left:14px">Aggiorna app</button>
+      <div id="ver" style="margin-top:10px;font-size:12px;color:var(--mute)"></div>
     </section>
   </div>
 </div>
@@ -279,6 +280,7 @@ function gsParse(txt) {
 function gsUrl(api, name, args) {
   return api.url + '?fn=' + encodeURIComponent(name) + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&token=' + encodeURIComponent(api.token || '');
 }
+var APP_BUILD = '30/10/2026 22:08';   // aggiornare a ogni modifica (data e ora)
 var GS_TIMEOUT = 40000, GS_RETRY = { getTreni: 1, getConfig: 1, getState: 1, getDiagnostica: 1 }, gsSlow = null;   // gsSlow: callback "server lento, riprovo"
 function gsFetch(api, name, args) {
   var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, GS_TIMEOUT) : null;
@@ -911,6 +913,7 @@ function showSetup(msg, cancellable) {
     }, function (e) { document.getElementById('setupErr').textContent = e && e.message === 'Accesso negato' ? 'Codice di accesso errato.' : 'Impossibile raggiungere Apps Script (' + ((e && e.message) || 'errore') + ').'; });
   };
   document.getElementById('setupCancel').onclick = function () { document.getElementById('mSetup').className = 'modal'; };
+  document.getElementById('ver').textContent = 'Versione 1.1 · ' + APP_BUILD;
   document.getElementById('bLink').onclick = function () { var a = gsApi(); gsInput.value = a ? a.url + (a.token ? '?token=' + a.token : '') : ''; showSetup('', true); };
   document.getElementById('bUpd').onclick = function () {
     var done = function () { location.reload(); };
