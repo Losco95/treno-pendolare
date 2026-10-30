@@ -21,7 +21,7 @@
   html { background:var(--bg); -webkit-text-size-adjust:100%; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body { margin:0; min-height:100vh; min-height:100dvh; background:var(--bg); color:var(--tx); font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;
-         padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px max(24px, env(safe-area-inset-bottom)); max-width:520px; margin-inline:auto; }
+         padding:calc(env(safe-area-inset-top, 0px) + 32px) 16px max(24px, env(safe-area-inset-bottom)); max-width:520px; margin-inline:auto; }
   button { font:inherit; color:inherit; }
   header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
   .seg { display:flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:3px; flex:1; }
@@ -133,7 +133,7 @@
 
   /* menu a schermo intero */
   .panel { position:fixed; inset:0; background:var(--bg); z-index:10; overflow:auto; display:none;
-           padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px max(28px, env(safe-area-inset-bottom)); }
+           padding:calc(env(safe-area-inset-top, 0px) + 32px) 16px max(28px, env(safe-area-inset-bottom)); }
   .panel.open { display:block; }
   .panel .in { max-width:520px; margin-inline:auto; }
   .ph { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
@@ -280,7 +280,7 @@ function gsParse(txt) {
 function gsUrl(api, name, args) {
   return api.url + '?fn=' + encodeURIComponent(name) + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&token=' + encodeURIComponent(api.token || '');
 }
-var APP_BUILD = '30/10/2026 22:08';   // aggiornare a ogni modifica (data e ora)
+var APP_BUILD = '30/10/2026 22:10';   // aggiornare a ogni modifica (data e ora)
 var GS_TIMEOUT = 40000, GS_RETRY = { getTreni: 1, getConfig: 1, getState: 1, getDiagnostica: 1 }, gsSlow = null;   // gsSlow: callback "server lento, riprovo"
 function gsFetch(api, name, args) {
   var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, GS_TIMEOUT) : null;
@@ -913,7 +913,7 @@ function showSetup(msg, cancellable) {
     }, function (e) { document.getElementById('setupErr').textContent = e && e.message === 'Accesso negato' ? 'Codice di accesso errato.' : 'Impossibile raggiungere Apps Script (' + ((e && e.message) || 'errore') + ').'; });
   };
   document.getElementById('setupCancel').onclick = function () { document.getElementById('mSetup').className = 'modal'; };
-  document.getElementById('ver').textContent = 'Versione 1.1 · ' + APP_BUILD;
+  document.getElementById('ver').textContent = 'Versione 1.2 · ' + APP_BUILD;
   document.getElementById('bLink').onclick = function () { var a = gsApi(); gsInput.value = a ? a.url + (a.token ? '?token=' + a.token : '') : ''; showSetup('', true); };
   document.getElementById('bUpd').onclick = function () {
     var done = function () { location.reload(); };
