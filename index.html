@@ -250,7 +250,7 @@
   <div class="sheet">
     <h2>Diagnostica</h2>
     <pre id="diagOut">Caricamento…</pre>
-    <div class="btns"><button id="cDiag">Chiudi</button></div>
+    <div class="btns"><button id="copyDiag">Copia</button><button id="cDiag">Chiudi</button></div>
   </div>
 </div>
 
@@ -819,6 +819,11 @@ function showSetup(msg, cancellable) {
   $('bInfo').onclick = function () { $('hint').classList.toggle('open'); };
   $('bInfo2').onclick = function () { $('hint2').classList.toggle('open'); };
   $('bDiag').onclick = openDiag;
+  $('copyDiag').onclick = function () {
+    var b = $('copyDiag'), t = $('diagOut').textContent, ok = function () { b.textContent = 'Copiato ✓'; setTimeout(function () { b.textContent = 'Copia'; }, 1500); };
+    var fb = function () { var r = document.createRange(); r.selectNodeContents($('diagOut')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); ok(); } catch (e) { b.textContent = 'Seleziona e copia'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, fb); else fb();
+  };
   $('cDiag').onclick = function () { $('mDiag').className = 'modal'; };
 
   $('main').addEventListener('click', function (e) {
