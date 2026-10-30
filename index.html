@@ -279,8 +279,9 @@ function gsParse(txt) {
 function gsUrl(api, name, args) {
   return api.url + '?fn=' + encodeURIComponent(name) + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&token=' + encodeURIComponent(api.token || '');
 }
+var GS_TIMEOUT = 40000, GS_RETRY = { getTreni: 1, getConfig: 1, getState: 1, getDiagnostica: 1 }, gsSlow = null;   // gsSlow: callback "server lento, riprovo"
 function gsFetch(api, name, args) {
-  var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, 25000) : null;
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, GS_TIMEOUT) : null;
   return fetch(gsUrl(api, name, args), { method: 'GET', redirect: 'follow', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
     .then(function (r) { if (to) clearTimeout(to); return r.json(); })
     .then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || 'Risposta non valida'); return j.data; });
@@ -288,7 +289,14 @@ function gsFetch(api, name, args) {
 function gsCall(name, args) {
   var api = gsApi();
   if (!api) return Promise.reject(new Error('Collegamento non configurato'));
+  var t0 = Date.now();
+  // Un solo nuovo tentativo, solo per le letture e solo dopo un timeout: il server finisce comunque il lavoro
+  // del primo tentativo e riempie la sua cache, quindi il secondo di solito risponde subito.
   return gsFetch(api, name, args).catch(function (e) {
+    if (e && e.name === 'AbortError' && GS_RETRY[name]) { if (gsSlow) gsSlow(name); return gsFetch(api, name, args); }
+    throw e;
+  }).catch(function (e) {
+    if (e && e.name === 'AbortError') e.waited = Math.round((Date.now() - t0) / 1000);
     if (e && e.message === 'Accesso negato') showSetup('Codice di accesso errato o cambiato.');
     throw e;
   });
@@ -297,7 +305,7 @@ function gsChain() {
   var ok = function () {}, ko = function () {};
   var o = { withSuccessHandler: function (f) { ok = f; return o; }, withFailureHandler: function (f) { ko = f; return o; } };
   GS_NAMES.forEach(function (n) {
-    o[n] = function () { gsCall(n, [].slice.call(arguments)).then(function (r) { ok(r); }, function (e) { ko({ message: (e && e.name === 'AbortError') ? 'Tempo scaduto' : (e && e.message) || String(e) }); }); };
+    o[n] = function () { gsCall(n, [].slice.call(arguments)).then(function (r) { ok(r); }, function (e) { ko({ message: (e && e.name === 'AbortError') ? 'Tempo scaduto dopo ' + (e.waited || '?') + ' s' : (e && e.message) || String(e) }); }); };
   });
   return o;
 }
@@ -526,6 +534,7 @@ function showSetup(msg, cancellable) {
     $('upd').style.color = stale ? 'var(--warn)' : '';
     var h = '';
     $('bView').className = 'icon' + (st.view === 'station' ? ' on' : ''); $('bView').setAttribute('aria-pressed', st.view === 'station' ? 'true' : 'false');
+    if (st.slow) h += '<div class="note" style="margin-bottom:10px">Server lento, riprovo…</div>';
     if (st.err) h += '<div class="err">' + esc(st.err) + (data ? ' (mostro i dati precedenti)' : '') + '</div>';
 
     if (st.view === 'station') { h += stationHtml(dir, data); $('main').innerHTML = h; return; }
@@ -588,12 +597,16 @@ function showSetup(msg, cancellable) {
     });
   }
 
+  var loadSince = 0;
   function load(force) {
     var dir = curDir();
-    st.loading = true;
+    // una sola richiesta alla volta: se ce n'è una in corso non ne parte un'altra (sblocco dopo 100 s per sicurezza)
+    if (st.loading && Date.now() - loadSince < 100000) return;
+    st.loading = true; loadSince = Date.now();
+    gsSlow = function () { st.err = null; st.slow = true; render(); };
     google.script.run
-      .withSuccessHandler(function (d) { applyBase(d); st.data[dir] = d; st.updDir[dir] = tnow(); st.err = null; st.loading = false; saveCache(dir); render(); })
-      .withFailureHandler(function (e) { st.err = 'Aggiornamento non riuscito: ' + ((e && e.message) ? e.message : String(e)); st.loading = false; render(); })
+      .withSuccessHandler(function (d) { applyBase(d); st.data[dir] = d; st.updDir[dir] = tnow(); st.err = null; st.slow = false; st.loading = false; saveCache(dir); render(); })
+      .withFailureHandler(function (e) { st.err = 'Aggiornamento non riuscito: ' + ((e && e.message) ? e.message : String(e)); st.slow = false; st.loading = false; render(); })
       .getTreni(dir, !!force);
   }
   function setDir(d) { st.manual = d; render(); load(false); }
@@ -879,7 +892,11 @@ function showSetup(msg, cancellable) {
   google.script.run.withSuccessHandler(function (c) { st.cfg = Object.assign({}, DEFAULTS, c); lsSet('cfg', st.cfg); applyTheme(st.cfg.tema); render(); load(false); })
     .withFailureHandler(function () { load(false); }).getConfig();
   syncState(true);
-  setInterval(function () { load(false); }, REFRESH_MS);
+  setInterval(function () { if (!document.hidden) load(false); }, REFRESH_MS);
+  function resumeLoad() { var u = st.updDir[curDir()]; if (!document.hidden && (!u || tnow() - u > 20000)) load(false); }
+  document.addEventListener('visibilitychange', resumeLoad);
+  window.addEventListener('pageshow', resumeLoad);
+  window.addEventListener('online', resumeLoad);
   setInterval(render, 15000);
   setInterval(tick, 1000);
 
