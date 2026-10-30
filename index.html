@@ -183,6 +183,9 @@
   .sheet { background:var(--card); width:100%; max-width:520px; border-radius:20px 20px 0 0; padding:20px 18px max(22px, env(safe-area-inset-bottom)); }
   .sheet h2 { margin:0 0 14px; font-size:18px; }
   pre { white-space:pre-wrap; word-break:break-word; font-size:11px; max-height:55vh; overflow:auto; background:var(--bg); padding:10px; border-radius:10px; }
+  .hero.swap { flex-direction:row-reverse; }
+  .hero.swap > div:first-child { text-align:right; }
+  .hero.swap .train { text-align:left; border-left:0; padding-left:0; border-right:1px solid var(--line); padding-right:12px; }
   .hero > div:first-child { flex:none; }
   .hero .train { flex:1; min-width:0; }
   .big { white-space:nowrap; }
@@ -559,7 +562,7 @@ function showSetup(msg, cancellable) {
       var main = c.utili[0];
       if (main) {
         var mm = minutesTo(main.uscita, c.now);
-        h += '<div class="crow"><div class="card"><div class="hero"><div><div class="lbl">' + ICON_EXIT + 'Esci alle</div><div class="big">' + hhmm(main.uscita) + '</div>' +
+        h += '<div class="crow"><div class="card"><div class="hero swap"><div><div class="lbl">' + ICON_EXIT + 'Esci alle</div><div class="big">' + hhmm(main.uscita) + '</div>' +
              '<div class="cd">' + (mm <= 0 ? 'adesso' : 'tra ' + mm + ' min') + '</div></div>' + trainBlock(main) + '</div>' +
              (main.verificato ? '' : '<div class="sub" style="margin-top:8px">Fermata a destinazione non verificata</div>') + '</div>' + goBtn(main, false) + '</div>';
         var next = c.utili.slice(1, 3);
