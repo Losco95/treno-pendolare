@@ -12,7 +12,11 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Prossimo treno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@700&family=Orbitron:wght@700&family=Share+Tech+Mono&display=swap">
 <style>
+  :root { --tf: 'Orbitron', ui-monospace, Menlo, monospace; }
   :root { --bg:#f4f5f7; --card:#fff; --tx:#16181d; --mute:#6b7280; --line:#e5e7eb; --acc:#4a74c9; --warn:#b45309; --dbg:#fdf4f3; --dbd:#ebb0ab; --dtx:#c4554d; --wbg:#fdf7e6; --wbd:#e2c27a; --gbg:#e4f0e8; --gbd:#2f9e5e; --gtx:#1c6b3d; color-scheme:light; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) { --bg:#0e1013; --card:#181b20; --tx:#f1f3f5; --mute:#8b93a1; --line:#2a2f37; --acc:#6ea0ff; --warn:#f0b24b; --dbg:#231a1b; --dbd:#6e3c3f; --dtx:#e89a94; --wbg:#241f12; --wbd:#7a6430; --gbg:#1c3226; --gbd:#3fbf7a; --gtx:#8fe0b2; color-scheme:dark; }
@@ -55,6 +59,13 @@
   .cd { color:var(--mute); font-size:14px; margin-top:4px; }
   .train { text-align:right; border-left:1px solid var(--line); padding-left:12px; }
   .train .t { font-size:28px; font-weight:650; font-variant-numeric:tabular-nums; }
+  .cd b { color:var(--tx); font-size:17px; font-variant-numeric:tabular-nums; }
+  .big.mute { color:var(--mute); }
+  /* orario di partenza del treno: font "digitale" (scelta in Impostazioni) */
+  .train .t, .row .tt b, .brow .bt { font-family:var(--tf); font-weight:700; letter-spacing:.02em; }
+  .train .t { font-size:25px; }
+  .row .tt b { font-size:15px; }
+  .brow .bt { font-size:26px; }
   .sub { color:var(--mute); font-size:14px; }
   .arr { font-size:12px; color:var(--mute); opacity:.85; margin-top:2px; }
   .late { color:var(--warn); font-weight:600; }
@@ -241,6 +252,7 @@
       <div class="field"><label for="fFA">Fasce statistiche: andata, divisione alle ore</label><input id="fFA" type="number" inputmode="numeric" min="0" max="23"></div>
       <div class="field"><label for="fFR">Fasce statistiche: ritorno, divisione alle ore</label><input id="fFR" type="number" inputmode="numeric" min="0" max="23"></div>
       <div class="field"><label>Tema</label><div class="seg" id="thSeg" style="flex:none;width:216px"><button data-th="auto">Auto</button><button data-th="light">Chiaro</button><button data-th="dark">Scuro</button></div></div>
+      <div class="field" style="display:block"><label>Font orario treno</label><div class="seg" id="tfSeg" style="margin-top:6px"><button data-tf="orb">Orbitron</button><button data-tf="sht">Share Tech</button><button data-tf="b612">B612</button><button data-tf="sys">Sistema</button></div></div>
       <div class="btns"><button class="pri" id="sCfg">Salva</button></div>
     <button class="linkbtn" id="bDiag">Diagnostica API</button>
       <button class="linkbtn" id="bLink" style="margin-left:14px">Collegamento…</button>
@@ -280,7 +292,7 @@ function gsParse(txt) {
 function gsUrl(api, name, args) {
   return api.url + '?fn=' + encodeURIComponent(name) + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&token=' + encodeURIComponent(api.token || '');
 }
-var APP_BUILD = '02/11/2026 01:40';   // aggiornare a ogni modifica (data e ora)
+var APP_BUILD = '02/11/2026 08:45';   // aggiornare a ogni modifica (data e ora)
 var GS_TIMEOUT = 40000, GS_RETRY = { getTreni: 1, getConfig: 1, getState: 1, getDiagnostica: 1 }, gsSlow = null;   // gsSlow: callback "server lento, riprovo"
 function gsFetch(api, name, args) {
   var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, GS_TIMEOUT) : null;
@@ -346,6 +358,15 @@ function showSetup(msg, cancellable) {
     var m = document.getElementById('tc'); if (m) m.setAttribute('content', dark ? '#0e1013' : '#f4f5f7');
   }
   applyTheme(st.cfg.tema);
+  var TF = { orb: "'Orbitron'", sht: "'Share Tech Mono'", b612: "'B612 Mono'", sys: "ui-monospace, 'SF Mono'" };
+  function applyTf(k) {
+    if (!TF[k]) k = 'orb';
+    document.documentElement.style.setProperty('--tf', TF[k] + ', ui-monospace, Menlo, monospace');
+    try { localStorage.setItem('tf', k); } catch (e) {}
+    Array.prototype.forEach.call($('tfSeg').children, function (b) { b.className = b.getAttribute('data-tf') === k ? 'on' : ''; });
+  }
+  var tfSaved = null; try { tfSaved = localStorage.getItem('tf'); } catch (e) {}
+  applyTf(tfSaved);
 
   // ---------- util ----------
   function dayKey() { return new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(new Date(tnow())); }
@@ -367,7 +388,6 @@ function showSetup(msg, cancellable) {
   function curDir() { return st.manual || (st.active ? st.active.dir : autoDir()); }
   function minutesTo(ms, now) { return Math.max(0, Math.ceil((ms - now) / 60000)); }
   function sg(n) { return n > 0 ? '+' + n : String(n); }
-
   var SV = 'viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   var ICON_EXIT = '<svg ' + SV + '><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 8l4 4-4 4M18 12H9"/></svg>';
   var ICON_TRAIN = '<svg ' + SV + '><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l2-4M16 21l-2-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/></svg>';
@@ -442,7 +462,7 @@ function showSetup(msg, cancellable) {
            (t.arrivo ? '<div class="arr" style="visibility:hidden">arrivo 00:00</div>' : '') + '</div>';
   }
   function trainBlock(t, label) {
-    return '<div class="train"><div class="lbl">' + ICON_TRAIN + (label || 'Il treno parte alle') + '</div><div class="t">' + hhmm(t.dep) + '</div>' +
+    return '<div class="train"><div class="lbl">' + ICON_TRAIN + (label || 'Parte alle') + '</div><div class="t">' + hhmm(t.dep) + '</div>' +
            '<div class="sub">' + meta(t) + '</div>' + (t.arrivo ? '<div class="arr">arrivo ' + hhmm(t.arrivo) + '</div>' : '') + '</div>';
   }
   function trCo(dir) {
@@ -570,11 +590,12 @@ function showSetup(msg, cancellable) {
           }
         });
       }
-      var main = c.utili[0];
+      var main = c.utili[0];   // il primo treno che si prende uscendo con calma, anche se tra più di un'ora
       if (main) {
         var mm = minutesTo(main.uscita, c.now);
-        h += '<div class="crow"><div class="card"><div class="hero"><div><div class="lbl">' + ICON_EXIT + 'Esci alle</div><div class="big">' + hhmm(main.uscita) + '</div>' +
-             '<div class="cd">' + (mm <= 0 ? 'adesso' : 'tra ' + mm + ' min') + '</div></div>' + trainBlock(main) + '</div>' +
+        h += '<div class="crow"><div class="card"><div class="hero"><div><div class="lbl">' + ICON_EXIT + 'Esci tra</div>' +
+             (mm <= 0 ? '<div class="big txt now">Ora</div>' : '<div class="big">' + mm + '<span class="u"> min</span></div>') +
+             '<div class="cd">alle <b>' + hhmm(main.uscita) + '</b></div></div>' + trainBlock(main) + '</div>' +
              (main.verificato ? '' : '<div class="sub" style="margin-top:8px">Fermata a destinazione non verificata</div>') + '</div>' + goBtn(main, false) + '</div>';
         var next = c.utili.slice(1, 3);
         if (next.length) {
@@ -833,6 +854,7 @@ function showSetup(msg, cancellable) {
   $('sAndata').onclick = function () { st.sdir = 'andata'; st.del = null; st.edit = null; renderStats(); };
   $('sRitorno').onclick = function () { st.sdir = 'ritorno'; st.del = null; st.edit = null; renderStats(); };
   $('sCfg').onclick = saveCfg;
+  $('tfSeg').onclick = function (e) { var b = e.target.closest('[data-tf]'); if (b) applyTf(b.getAttribute('data-tf')); };
   ['fCT', 'fCC', 'fUT', 'fUC'].forEach(function (id) { $(id).addEventListener('input', updPrev); });
   $('bInfo').onclick = function () { $('hint').classList.toggle('open'); };
   $('bInfo2').onclick = function () { $('hint2').classList.toggle('open'); };
