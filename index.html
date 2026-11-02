@@ -280,7 +280,7 @@ function gsParse(txt) {
 function gsUrl(api, name, args) {
   return api.url + '?fn=' + encodeURIComponent(name) + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&token=' + encodeURIComponent(api.token || '');
 }
-var APP_BUILD = '30/10/2026 22:10';   // aggiornare a ogni modifica (data e ora)
+var APP_BUILD = '02/11/2026 01:40';   // aggiornare a ogni modifica (data e ora)
 var GS_TIMEOUT = 40000, GS_RETRY = { getTreni: 1, getConfig: 1, getState: 1, getDiagnostica: 1 }, gsSlow = null;   // gsSlow: callback "server lento, riprovo"
 function gsFetch(api, name, args) {
   var ctl = typeof AbortController === 'function' ? new AbortController() : null, to = ctl ? setTimeout(function () { ctl.abort(); }, GS_TIMEOUT) : null;
@@ -573,7 +573,7 @@ function showSetup(msg, cancellable) {
       var main = c.utili[0];
       if (main) {
         var mm = minutesTo(main.uscita, c.now);
-        h += '<div class="crow"><div class="card"><div class="hero swap"><div><div class="lbl">' + ICON_EXIT + 'Esci alle</div><div class="big">' + hhmm(main.uscita) + '</div>' +
+        h += '<div class="crow"><div class="card"><div class="hero"><div><div class="lbl">' + ICON_EXIT + 'Esci alle</div><div class="big">' + hhmm(main.uscita) + '</div>' +
              '<div class="cd">' + (mm <= 0 ? 'adesso' : 'tra ' + mm + ' min') + '</div></div>' + trainBlock(main) + '</div>' +
              (main.verificato ? '' : '<div class="sub" style="margin-top:8px">Fermata a destinazione non verificata</div>') + '</div>' + goBtn(main, false) + '</div>';
         var next = c.utili.slice(1, 3);
