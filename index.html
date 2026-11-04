@@ -428,8 +428,9 @@ function showSetup(msg, cancellable) {
   }
   function meta(t) { return lateHtml(t) + binHtml(t); }
 
-  // Un treno non parte prima dell'orario programmato: l'anticipo (ritardo negativo) è solo informativo.
-  function depOf(t) { return t.partenzaProgrammata + Math.max(0, t.ritardo) * 60000; }
+  // Tutti i calcoli (uscita, "tra N min", perso/corri) usano l'orario programmato: il ritardo è solo informativo,
+  // così se un ritardo rientra non si perde il treno. Meglio arrivare prima in stazione.
+  function depOf(t) { return t.partenzaProgrammata; }
 
   function calc(dir, data) {
     var tr = dir === 'andata' ? st.cfg.casaTranq : st.cfg.ufficioTranq;
