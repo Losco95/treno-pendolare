@@ -531,16 +531,18 @@ function showSetup(msg, cancellable) {
     var now = tnow(), from = dir === 'andata' ? 'Genova Piazza Principe' : 'Sestri Ponente Aeroporto';
     var h = '<h3>Partenze da ' + from + '</h3>';
     if (!data) return h + '<div class="empty">' + (st.loading ? 'Carico i treni…' : 'Nessun dato.') + '</div>';
-    var list = (data.treni || []).map(function (t) { return Object.assign({}, t, { dep: depOf(t) }); })
-      .filter(function (t) { return t.dep > now - 60000; }).sort(function (a, b) { return a.dep - b.dep; }).slice(0, 6);
+    // il treno resta in lista finché non parte davvero (programmato + ritardo), ma i minuti restano sull'orario programmato
+    var list = (data.treni || []).map(function (t) { return Object.assign({}, t, { dep: depOf(t), real: depOf(t) + Math.max(0, t.ritardo || 0) * 60000 }); })
+      .filter(function (t) { return t.real > now - 60000; }).sort(function (a, b) { return a.dep - b.dep; }).slice(0, 6);
     if (!list.length) return h + '<div class="card empty">Nessun treno in partenza.</div>';
     list.forEach(function (t, i) {
       var m = Math.ceil((t.dep - now) / 60000), sopp = !!t.soppresso;
-      var when = sopp ? 'Soppresso' : (m <= 0 ? 'In partenza' : 'tra ' + m + ' min');
+      var wait = !sopp && t.real > now && t.dep <= now;   // orario programmato passato ma ancora in stazione
+      var when = sopp ? 'Soppresso' : (wait ? 'Ancora in stazione' : (m <= 0 ? 'In partenza' : 'tra ' + m + ' min'));
       var bin = sopp ? '' : '<div class="bin' + (t.cambioBinario ? ' chg' : '') + '"><span>Bin.</span><b>' + (t.binario ? esc(t.binario) : '–') + '</b>' +
                 '<i>' + (t.cambioBinario && t.binarioProg ? 'era ' + esc(t.binarioProg) : '') + '</i></div>';
       h += '<div class="brow' + (i === 0 && !sopp ? ' first' : '') + (sopp ? ' sopp' : '') + '"><div class="bt">' + hhmm(t.dep) + '</div>' +
-           '<div class="bi"><div class="bw">' + when + '</div>' + (sopp ? '' : '<div class="sub">' + lateHtml(t) + '</div>') + '</div>' + bin + '</div>';
+           '<div class="bi"><div class="bw">' + when + '</div>' + (sopp ? '' : '<div class="sub">' + lateHtml(t) + (t.real > t.dep ? ' · prevista ' + hhmm(t.real) : '') + '</div>') + '</div>' + bin + '</div>';
     });
     return h;
   }
